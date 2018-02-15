@@ -4,9 +4,9 @@ variable "environment" {
 
 resource "aws_db_instance" "default" {
     allocated_storage = 20 # minimum
-    engine = "postgresql"
+    engine = "postgres"
     instance_class = "db.t2.micro"
-    name = "${var.environment}-qa-reports"
+    name = "${var.environment}qareports"
     username = "drue"
-    password = "1kU2BU2jpeUGjKCALq3WLXNXBSQ"
+    password = "1kU2BU2jpeUGjKCALq3WLXNXBSQ" # XXX
 }
