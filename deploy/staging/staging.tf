@@ -18,6 +18,17 @@ variable "ssh_key_path" {
     default = "~/.ssh/qa-reports.pub"
 }
 
+variable "route53_zone_id" {
+    type = "string"
+    # ctt.linaro.org
+    default = "Z27NRA2FV79C84"
+}
+
+variable "route53_base_domain_name" {
+    type = "string"
+    default = "ctt.linaro.org"
+}
+
 variable "ami_id" {
     type = "string"
     # us-east-1, 16.04LTS, hvm:ebs-ssd
@@ -29,10 +40,10 @@ provider "aws" {
     region = "us-east-1"
 }
 
-module "rds" {
-    source = "../modules/rds"
-    environment = "${var.environment}"
-}
+#module "rds" {
+#    source = "../modules/rds"
+#    environment = "${var.environment}"
+#}
 
 module "webservers" {
     source = "../modules/webservers"
@@ -41,4 +52,6 @@ module "webservers" {
     subnet_ids = "${var.subnet_ids}"
     ssh_key_path = "${var.ssh_key_path}"
     ami_id = "${var.ami_id}"
+    route53_zone_id = "${var.route53_zone_id}"
+    route53_base_domain_name = "${var.route53_base_domain_name}"
 }
