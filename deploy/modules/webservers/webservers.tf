@@ -1,27 +1,53 @@
+# Required variables
 variable "environment" {
-    type = "string"
+  type = "string"
 }
 variable "vpc_id" {
-    type = "string"
+  type = "string"
 }
-variable "subnet_us_east_1a" {
-    type = "string"
+variable "availability_zones" {
+  type = "list"
 }
-variable "subnet_us_east_1b" {
-    type = "string"
+variable "availability_zone_to_subnet_map" {
+  type = "map"
+  description = "Map of availability zones to subnet IDs"
 }
 variable "ssh_key_path" {
-    type = "string"
+  type = "string"
 }
 variable "ami_id" {
-    type = "string"
+  type = "string"
 }
 variable "route53_zone_id" {
-    type = "string"
+  type = "string"
 }
 variable "route53_base_domain_name" {
-    type = "string"
+  type = "string"
 }
+
+# Optional variables
+variable "www_instance_type" {
+  type = "string"
+  default = "t2.micro"
+}
+variable "www_instance_count" {
+  type = "string"
+  default = "2"
+}
+variable "worker_instance_type" {
+  type = "string"
+  default = "t2.micro"
+}
+variable "worker_instance_count" {
+  type = "string"
+  default = "2"
+}
+
+# Calculated variables
+locals {
+  subnets = "${values(var.availability_zone_to_subnet_map)}"
+}
+
 
 # A security group for the load balancer so it is accessible via the web
 resource "aws_security_group" "qa-reports-lb-sg" {
@@ -87,7 +113,7 @@ resource "aws_security_group" "qa-reports-ec2-www" {
 resource "aws_lb" "qa-reports-lb" {
   name = "${var.environment}-qa-reports-lb"
 
-  subnets = ["${var.subnet_us_east_1a}", "${var.subnet_us_east_1b}"]
+  subnets = ["${local.subnets}"]
   security_groups = ["${aws_security_group.qa-reports-lb-sg.id}"]
 }
 resource "aws_lb_target_group" "qa-reports-tg" {
@@ -127,11 +153,18 @@ resource "aws_instance" "qa-reports-www" {
     # The connection will use the local SSH agent for authentication.
   }
 
-  instance_type = "t2.micro"
+  instance_type = "${var.www_instance_type}"
   ami = "${var.ami_id}"
   key_name = "${aws_key_pair.auth.id}"
   vpc_security_group_ids = ["${aws_security_group.qa-reports-ec2-www.id}"]
-  subnet_id = "${var.subnet_us_east_1a}"
+
+  subnet_id = "${element(local.subnets, count.index)}"
+
+  count = "${var.www_instance_count}"
+
+  # Each instance will go to the next AZ in the list. After
+  # len(availability_zones) it will wrap.
+  availability_zone = "${element(var.availability_zones, count.index)}"
 
   # We run a remote provisioner on the instance after creating it.
   # In this case, we just install nginx and start it. By default,
@@ -143,10 +176,49 @@ resource "aws_instance" "qa-reports-www" {
       "sudo service nginx start",
     ]
   }
+
+  tags {
+    Name = "${var.environment}-qa-reports-www-${count.index}"
+  }
+}
+
+resource "aws_instance" "qa-reports-worker" {
+  connection {
+    user = "ubuntu"
+    # The connection will use the local SSH agent for authentication.
+  }
+
+  instance_type = "${var.worker_instance_type}"
+  ami = "${var.ami_id}"
+  key_name = "${aws_key_pair.auth.id}"
+  vpc_security_group_ids = ["${aws_security_group.qa-reports-ec2-www.id}"]
+
+  subnet_id = "${element(local.subnets, count.index)}"
+  count = "${var.worker_instance_count}"
+
+  # Each instance will go to the next AZ in the list. After
+  # len(availability_zones) it will wrap.
+  availability_zone = "${element(var.availability_zones, count.index)}"
+
+  # We run a remote provisioner on the instance after creating it.
+  # In this case, we just install nginx and start it. By default,
+  # this should be on port 80
+  provisioner "remote-exec" {
+    inline = [
+      "sudo apt-get -y update",
+      "sudo apt-get -y install nginx",
+      "sudo service nginx start",
+    ]
+  }
+
+  tags {
+    Name = "${var.environment}-qa-reports-worker-${count.index}"
+  }
 }
 
 resource "aws_lb_target_group_attachment" "qa-reports-www-lb" {
+  count = "${var.www_instance_count}"
   target_group_arn = "${aws_lb_target_group.qa-reports-tg.arn}"
-  target_id = "${aws_instance.qa-reports-www.id}"
+  target_id = "${element(aws_instance.qa-reports-www.*.id, count.index)}"
   port = 80
 }

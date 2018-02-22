@@ -12,13 +12,8 @@ terraform apply
 
 # TODO
 
-- Move state files to S3
-  - manage the DB password for rds
-- multiple webservers
-- worker nodes
 - db secret from ansible vault, pull from group vars
 - ACM cert
-- AZ colocation for web, workers, and rds
 
 - ssh keys in repo for initial bootstrap
 - rabbitmq on web host (master)
@@ -28,3 +23,10 @@ terraform apply
 - set up prod
   - shared vars that span environments
 - commit ansible inventory
+
+# Caveats
+
+- state file in S3 is not locked; add dynamo to lock it
+- state file in S3 is not encrypted
+- AZs.. us-east-1a is primary, 1b is secondary (may lose it)
+  - due to rabbitmq, rds

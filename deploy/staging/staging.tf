@@ -17,7 +17,13 @@ variable "environment" {
 data "aws_vpc" "selected" {
   cidr_block = "172.31.0.0/16"
 }
-
+variable "availability_zones" {
+  type = "list"
+  default = [
+    "us-east-1a",
+    "us-east-1b"
+  ]
+}
 # Discover subnets from cidr
 data "aws_subnet" "us-east-1a" {
   cidr_block = "172.31.1.0/24"
@@ -26,6 +32,12 @@ data "aws_subnet" "us-east-1a" {
 data "aws_subnet" "us-east-1b" {
   cidr_block = "172.31.2.0/24"
   availability_zone = "us-east-1b"
+}
+locals {
+  availability_zone_to_subnet_map = {
+    "us-east-1a" = "${data.aws_subnet.us-east-1a.id}",
+    "us-east-1b" = "${data.aws_subnet.us-east-1b.id}"
+  }
 }
 
 variable "ssh_key_path" {
@@ -64,8 +76,8 @@ module "webservers" {
   source = "../modules/webservers"
   environment = "${var.environment}"
   vpc_id = "${data.aws_vpc.selected.id}"
-  subnet_us_east_1a = "${data.aws_subnet.us-east-1a.id}"
-  subnet_us_east_1b = "${data.aws_subnet.us-east-1b.id}"
+  availability_zones = "${var.availability_zones}"
+  availability_zone_to_subnet_map = "${local.availability_zone_to_subnet_map}"
   ssh_key_path = "${var.ssh_key_path}"
   ami_id = "${var.ami_id}"
   route53_zone_id = "${var.route53_zone_id}"
