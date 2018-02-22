@@ -1,57 +1,74 @@
+# Store state file in S3
+# This has to be hard coded because it is loaded before anything else.
+terraform {
+  backend "s3" {
+    bucket = "linaro-terraform-state"
+    key = "qa-reports/staging/terraform.tfstate"
+    region = "us-east-1"
+  }
+}
+
 variable "environment" {
-    type = "string"
-    default = "staging"
+  type = "string"
+  default = "staging"
 }
 
-variable "vpc_id" {
-    type = "string"
-    default = "vpc-a13ba9d9"
+# Discover VPC from cidr
+data "aws_vpc" "selected" {
+  cidr_block = "172.31.0.0/16"
 }
 
-variable "subnet_ids" {
-    type = "list"
-    default = ["subnet-85c308d8", "subnet-e820418c"]
+# Discover subnets from cidr
+data "aws_subnet" "us-east-1a" {
+  cidr_block = "172.31.1.0/24"
+  availability_zone = "us-east-1a"
+}
+data "aws_subnet" "us-east-1b" {
+  cidr_block = "172.31.2.0/24"
+  availability_zone = "us-east-1b"
 }
 
 variable "ssh_key_path" {
-    type = "string"
-    default = "~/.ssh/qa-reports.pub"
+  type = "string"
+  default = "~/.ssh/qa-reports.pub"
 }
 
 variable "route53_zone_id" {
-    type = "string"
-    # ctt.linaro.org
-    default = "Z27NRA2FV79C84"
+  type = "string"
+  # ctt.linaro.org
+  default = "Z27NRA2FV79C84"
 }
 
 variable "route53_base_domain_name" {
-    type = "string"
-    default = "ctt.linaro.org"
+  type = "string"
+  default = "ctt.linaro.org"
 }
 
 variable "ami_id" {
-    type = "string"
-    # us-east-1, 16.04LTS, hvm:ebs-ssd
-    # see https://cloud-images.ubuntu.com/locator/ec2/
-    default = "ami-0b383171"
+  type = "string"
+  # us-east-1, 16.04LTS, hvm:ebs-ssd
+  # see https://cloud-images.ubuntu.com/locator/ec2/
+  default = "ami-0b383171"
 }
 
 provider "aws" {
-    region = "us-east-1"
+  region = "us-east-1"
 }
 
 #module "rds" {
-#    source = "../modules/rds"
-#    environment = "${var.environment}"
+#  source = "../modules/rds"
+#  environment = "${var.environment}"
 #}
 
 module "webservers" {
-    source = "../modules/webservers"
-    environment = "${var.environment}"
-    vpc_id = "${var.vpc_id}"
-    subnet_ids = "${var.subnet_ids}"
-    ssh_key_path = "${var.ssh_key_path}"
-    ami_id = "${var.ami_id}"
-    route53_zone_id = "${var.route53_zone_id}"
-    route53_base_domain_name = "${var.route53_base_domain_name}"
+  source = "../modules/webservers"
+  environment = "${var.environment}"
+  vpc_id = "${data.aws_vpc.selected.id}"
+  subnet_us_east_1a = "${data.aws_subnet.us-east-1a.id}"
+  subnet_us_east_1b = "${data.aws_subnet.us-east-1b.id}"
+  ssh_key_path = "${var.ssh_key_path}"
+  ami_id = "${var.ami_id}"
+  route53_zone_id = "${var.route53_zone_id}"
+  route53_base_domain_name = "${var.route53_base_domain_name}"
 }
+

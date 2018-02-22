@@ -4,8 +4,11 @@ variable "environment" {
 variable "vpc_id" {
     type = "string"
 }
-variable "subnet_ids" {
-    type = "list"
+variable "subnet_us_east_1a" {
+    type = "string"
+}
+variable "subnet_us_east_1b" {
+    type = "string"
 }
 variable "ssh_key_path" {
     type = "string"
@@ -84,7 +87,7 @@ resource "aws_security_group" "qa-reports-ec2-www" {
 resource "aws_lb" "qa-reports-lb" {
   name = "${var.environment}-qa-reports-lb"
 
-  subnets = "${var.subnet_ids}"
+  subnets = ["${var.subnet_us_east_1a}", "${var.subnet_us_east_1b}"]
   security_groups = ["${aws_security_group.qa-reports-lb-sg.id}"]
 }
 resource "aws_lb_target_group" "qa-reports-tg" {
@@ -128,7 +131,7 @@ resource "aws_instance" "qa-reports-www" {
   ami = "${var.ami_id}"
   key_name = "${aws_key_pair.auth.id}"
   vpc_security_group_ids = ["${aws_security_group.qa-reports-ec2-www.id}"]
-  subnet_id = "${var.subnet_ids[0]}"
+  subnet_id = "${var.subnet_us_east_1a}"
 
   # We run a remote provisioner on the instance after creating it.
   # In this case, we just install nginx and start it. By default,
