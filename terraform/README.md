@@ -4,11 +4,22 @@
 
 # Usage
 
-terraform init
-ssh-add ~/.ssh/qa-reports.pem
-assume-ctt-admin 123456
-terraform plan
-terraform apply
+Prerequisites:
+
+The qa-reports ssh key should be in your ssh agent:
+
+    ssh-add ~/.ssh/qa-reports.pem
+
+The AWS qa-admin role should be assumed:
+
+    assume-ctt-admin 123456
+
+Plan the deployment:
+    make plan
+
+Do the deployment:
+    make apply
+
 
 # TODO
 
@@ -17,10 +28,8 @@ terraform apply
 
 - ssh keys in repo for initial bootstrap
 - rabbitmq on web host (master)
-- rename to something better.. infrastructure/application? terraform/ansible?
 
 - set up prod
-  - shared vars that span environments
 - commit ansible inventory
 
 # Caveats
