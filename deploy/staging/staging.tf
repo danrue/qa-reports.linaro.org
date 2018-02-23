@@ -67,11 +67,6 @@ provider "aws" {
   region = "us-east-1"
 }
 
-#module "rds" {
-#  source = "../modules/rds"
-#  environment = "${var.environment}"
-#}
-
 module "webservers" {
   source = "../modules/webservers"
   environment = "${var.environment}"

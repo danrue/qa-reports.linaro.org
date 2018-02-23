@@ -19,7 +19,6 @@ terraform apply
 - rabbitmq on web host (master)
 - rename to something better.. infrastructure/application? terraform/ansible?
 
-- use discovery rather than hard coded strings
 - set up prod
   - shared vars that span environments
 - commit ansible inventory
