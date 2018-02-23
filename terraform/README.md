@@ -5,13 +5,23 @@
 # Usage
 
 ## Prerequisites
-The qa-reports ssh key should be in your ssh agent:
+
+The qa-reports ssh key should be in your ssh agent. This is used to log into
+the ec2 host for initial bootstrapping:
 
     ssh-add ~/.ssh/qa-reports.pem
 
-The AWS qa-admin role should be assumed:
+AWS credentials and the AWS role 'qa-admin' should be assumed and set in your
+environmnet (command quoted is a local shell function):
 
-    assume-ctt-admin 123456
+    assume-ctt-qa-admin 123456
+
+The database password is loaded into your environment. This will set
+QA_REPORTS_DB_PASS_STAGING or QA_REPORTS_DB_PASS_PRODUCTION, using the
+encrypted group_vars files in ../ansible/group_vars:
+
+    eval $(./scripts/load_db_password staging)
+    eval $(./scripts/load_db_password production)
 
 ## Deploy
 
@@ -29,18 +39,28 @@ Update ansible's inventory:
 
 # TODO
 
-- db secret from ansible vault, pull from group vars
 - ACM cert
 
 - ssh keys in repo for initial bootstrap
-- rabbitmq on web host (master)
 
 - set up prod
 - commit ansible inventory
 
 # Caveats
 
-- state file in S3 is not locked; add dynamo to lock it
-- state file in S3 is not encrypted
-- AZs.. us-east-1a is primary, 1b is secondary (may lose it)
-  - due to rabbitmq, rds
+## Availability
+
+There are two services that cause us-east-1a availability zone to be a point of failure for us:
+- RDS is deployed to us-east-1a and multi-AZ replication is not enabled (cost will roughly double to enable it)
+- RabbitMQ runs on the webserver in us-east-1a, and is a single point of failure.
+
+## State
+
+Terraform uses a state file to keep track of which AWS resources it is responsible for. This file is saved in S3, but:
+
+- The state file is not locked while in use. Set up dynamo to enable state file
+  locking. In our environment, with little concurrent activity, this should not
+  be problematic.
+- The state file in S3 is not encrypted. I tried setting up encryption but I
+  couldn't get it working. State file is protected by the IAM policy on the
+  bucket, which is restricted to the qa-admin role.

@@ -5,9 +5,6 @@ variable "environment" {
 variable "vpc_id" {
   type = "string"
 }
-variable "availability_zones" {
-  type = "list"
-}
 variable "availability_zone_to_subnet_map" {
   type = "map"
   description = "Map of availability zones to subnet IDs"
@@ -109,6 +106,7 @@ resource "aws_security_group" "qa-reports-ec2-www" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+output "qa-reports-ec2-www-sg-id" { value = "${aws_security_group.qa-reports-ec2-www.id}" }
 
 resource "aws_lb" "qa-reports-lb" {
   name = "${var.environment}-qa-reports-lb"
@@ -164,7 +162,7 @@ resource "aws_instance" "qa-reports-www" {
 
   # Each instance will go to the next AZ in the list. After
   # len(availability_zones) it will wrap.
-  availability_zone = "${element(var.availability_zones, count.index)}"
+  availability_zone = "${element(keys(var.availability_zone_to_subnet_map), count.index)}"
 
   # We run a remote provisioner on the instance after creating it.
   # In this case, we just install nginx and start it. By default,
@@ -182,6 +180,29 @@ resource "aws_instance" "qa-reports-www" {
   }
 }
 
+# Instance security group to access the instances over SSH
+resource "aws_security_group" "qa-reports-ec2-worker" {
+  name        = "${var.environment}-qa-reports ec2 worker"
+  description = "Default SG for qa-reports workers"
+  vpc_id      = "${var.vpc_id}"
+
+  # SSH access from anywhere
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  # outbound internet access
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+output "qa-reports-ec2-worker-sg-id" { value = "${aws_security_group.qa-reports-ec2-worker.id}" }
 resource "aws_instance" "qa-reports-worker" {
   connection {
     user = "ubuntu"
@@ -191,14 +212,14 @@ resource "aws_instance" "qa-reports-worker" {
   instance_type = "${var.worker_instance_type}"
   ami = "${var.ami_id}"
   key_name = "${aws_key_pair.auth.id}"
-  vpc_security_group_ids = ["${aws_security_group.qa-reports-ec2-www.id}"]
+  vpc_security_group_ids = ["${aws_security_group.qa-reports-ec2-worker.id}"]
 
   subnet_id = "${element(local.subnets, count.index)}"
   count = "${var.worker_instance_count}"
 
   # Each instance will go to the next AZ in the list. After
   # len(availability_zones) it will wrap.
-  availability_zone = "${element(var.availability_zones, count.index)}"
+  availability_zone = "${element(keys(var.availability_zone_to_subnet_map), count.index)}"
 
   # We run a remote provisioner on the instance after creating it.
   # In this case, we just install nginx and start it. By default,
