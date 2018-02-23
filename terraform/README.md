@@ -4,8 +4,7 @@
 
 # Usage
 
-Prerequisites:
-
+## Prerequisites
 The qa-reports ssh key should be in your ssh agent:
 
     ssh-add ~/.ssh/qa-reports.pem
@@ -14,12 +13,19 @@ The AWS qa-admin role should be assumed:
 
     assume-ctt-admin 123456
 
+## Deploy
+
 Plan the deployment:
+
     make plan
 
 Do the deployment:
+
     make apply
 
+Update ansible's inventory:
+
+    make inventory
 
 # TODO
 
