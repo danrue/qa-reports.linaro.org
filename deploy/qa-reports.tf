@@ -23,12 +23,12 @@ provider "aws" {
 }
 
 #module "rds" {
-#  source = "../modules/rds"
+#  source = "modules/rds"
 #  environment = "${var.environment}"
 #}
 
 module "webservers" {
-  source = "../modules/webservers"
+  source = "modules/webservers"
   environment = "${var.environment}"
   vpc_id = "${var.vpc_id}"
   availability_zones = "${var.availability_zones}"

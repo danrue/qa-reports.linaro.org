@@ -2,7 +2,10 @@ ENV := staging
 
 all: plan apply
 
-plan:
+.terraform:
+	terraform init
+
+plan: .terraform
 	terraform plan -var-file=shared.tfvars -var-file=${ENV}.tfvars .
 
 apply:
