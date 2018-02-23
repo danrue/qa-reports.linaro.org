@@ -11,11 +11,11 @@ plan: .terraform
 repl: .terraform
 	terraform console -var-file=shared.tfvars -var-file=${ENV}.tfvars .
 
-apply:
+apply: .terraform
 	terraform apply -var-file=shared.tfvars -var-file=${ENV}.tfvars .
 
 inventory:
-	terraform state | ./scripts/state_to_ansible_inventory.py > inventory
+	terraform state pull | ./scripts/state_to_ansible_inventory.py > ../ansible/hosts.staging
 
 clean:
-	rm -rf .terraform
+	rm -rf .terraform errored.tfstate
