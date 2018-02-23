@@ -9,7 +9,7 @@ plan: .terraform
 	terraform plan -var-file=shared.tfvars -var-file=${ENV}.tfvars .
 
 apply:
-	terraform apply -var-file=${ENV}.tfvars -state=${ENV}.tfstate -backup=-
+	terraform apply -var-file=shared.tfvars -var-file=${ENV}.tfvars .
 
-destroy:
-	terraform destroy -var-file=${ENV}.tfvars -state=${ENV}.tfstate -backup=-
+inventory:
+	terraform state | ./scripts/state_to_ansible_inventory.py > inventory
